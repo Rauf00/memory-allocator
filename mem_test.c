@@ -5,35 +5,63 @@
 
 int main(int argc, char** args) {
     void* pInitBlock = mem_init();
-    //void* test = my_malloc(32);
-    //int* testInt = (int*)test;
-    int* testInt = (int*)my_malloc(32);
-    if(testInt != NULL) {
-        testInt[0] = 9;
-        testInt[8] = 88;
-        my_free(testInt);
+
+    printf("\n----- TEST1: Allocate 32 bytes -----\n");
+    int* test1 = (int*)my_malloc(32);
+    if(test1 != NULL) {
+        test1[0] = 9;
+        test1[8] = 88;
+        printf("\n----- TEST1: Free 32 bytes -----\n");
+        my_free(test1);
     }
-    int* test2 = (int*)my_malloc(32);
+
+    printf("\n----- TEST2: Allocate too many bytes -----\n");
+    int* test2 = (int*)my_malloc(1024);
     if(test2 != NULL) {
         test2[0] = 7;
     }
-    int* testout = (int*)my_malloc(33333);
-    if(testout != NULL) {
-        testout[0] = 7;
+
+    printf("\n----- TEST3: Allocate 32, 32, 128 bytes -----\n");
+    int* test31 = (int*)my_malloc(32);
+    int* test32 = (int*)my_malloc(32);
+    int* test33 = (int*)my_malloc(128);
+    if (test31 != NULL && 
+    test32 != NULL &&
+    test33 != NULL
+    ) {
+        test31[0] = 1;
+        test32[0] = 2;
+        test33[0] = 3;
+        printf("\n----- TEST3: Free 32, 32, 128 bytes -----\n");
+        my_free(test32);
+        my_free(test33);
+        my_free(test31);
     }
-    int* testout2= (int*)my_malloc(2);
-    printf("Didn't make it out\n");
-    if(testout2 != NULL) {
-        testout2[0] = 2;
+
+    printf("\n----- TEST4: Allocate 32, 64, 32, 16, 32 bytes -----\n");
+    int* test41 = (int*)my_malloc(32);
+    int* test42 = (int*)my_malloc(64);
+    int* test43 = (int*)my_malloc(32);
+    int* test44 = (int*)my_malloc(16);
+    int* test45 = (int*)my_malloc(32);
+    if (test41 != NULL && 
+    test42 != NULL &&
+    test43 != NULL &&
+    test44 != NULL &&
+    test45 != NULL
+    ) {
+        test41[0] = 1;
+        test42[0] = 2;
+        test43[0] = 3;
+        test44[0] = 4;
+        test45[0] = 5;
+        printf("\n----- TEST4: Free 64, 16 (create \"holes\" in memory) bytes -----\n");
+        my_free(test42);
+        my_free(test44);
     }
-    
-    //printf("first value in test one: %d\n first value in test two: %d\n",testInt[0],test2[0]);
-    
-    
-    //void* test3 = my_malloc(0);
-    //void* test4 = my_malloc(16);
-    //void* test5 = my_malloc(16);
-    
+    printf("\n----- TEST4: Allocate 64 bytes to a \"hole\" of appropriate size -----\n");
+    int* test46 = (int*)my_malloc(64);
+
     my_malloc_cleanup();
     return 0;
 }

@@ -3,7 +3,9 @@
 #include "my_malloc.h"
 #include "bTree/bTree.h"
 #include "list/list.h"
-#define MAX_SIZE 64
+
+#define MAX_SIZE 256
+
 static BTree* bTree;
 static void* initBlock;
 static List* listOfAllocatedBlocks;
@@ -11,6 +13,7 @@ static int stored;
 static void* ptr;
 static size_t remainingSize;
 static bool begunSearch;
+
 void* mem_init(){
     remainingSize = MAX_SIZE;
     initBlock = malloc(MAX_SIZE);
@@ -18,119 +21,120 @@ void* mem_init(){
     listOfAllocatedBlocks = List_create();
     return initBlock;
 }
-void* rec2MyMal( BTreeNode* node, size_t reqSize) {
-    if(node->state == FULL || node->size == MAX_SIZE && begunSearch == true) {
+
+static void* rec2MyMal(BTreeNode* node, size_t reqSize) {
+    if (node->state == FULL || node->size == MAX_SIZE && begunSearch == true) {
         return NULL;
     }
-    
-    if(stored == 0) {
-    }else if( reqSize <= (node->size/2)) {
+    if (stored == 0) {
+    } else if (reqSize <= (node->size/2)) {
         begunSearch = true;
-        printf("We are here at %d trying to fit in %d\n\n", node->size, reqSize);
-        if(node->isParent == false) {
+        printf("We are here at %ld trying to fit in %ld\n", node->size, reqSize);
+        if (node->isParent == false) {
             node->isParent = true;
             BTree_splitNode(node);
-            
         }
-        
-        if(node->right->state != FULL) {
-            printf("Going right!\n\n");
+        if (node->right->state != FULL) {
+            printf("Going right!\n");
             ptr =rec2MyMal(node->right, reqSize);
         }
         if(node->left->state != FULL) {
-            printf("Going left!\n\n");
+            printf("Going left!\n");
             ptr = rec2MyMal(node->left, reqSize);
         }
-        
     } else {
-        printf("We have stored!\n\n");
-        remainingSize = remainingSize - node->size;
-        stored = 0;
-        node->state = FULL;
-        List_append(listOfAllocatedBlocks,node);
-        printf("%d\n", node->memAddr);
-        return (node->memAddr);
+        if (node->state == FREE) {
+            printf("We've found a node of appropriate size and stored data!\n");
+            remainingSize = remainingSize - node->size;
+            stored = 0;
+            node->state = FULL;
+            List_append(listOfAllocatedBlocks,node);
+            printf("Pointer to the first memory location of the block: %p\n", node->memAddr);
+            return (node->memAddr);
+        }
     }
-    if(stored == 0) {
-        //printf("Is %d size node a parent?\n", node->size);
-        if(node->isParent == true) {
-            if(node->left->state == FULL && node->right->state == FULL) {
-                //printf("please\n");
+    if (stored == 0) {
+        if (node->isParent == true) {
+            if (node->left->state == FULL && node->right->state == FULL) {
                 node->state = FULL;
             } else {
-                //printf("this at least?\n");
                 node->state = PARTIAL;
             }
-            
         }
-        
         return ptr;
     }
     return ptr;
-
 }
     
 void* my_malloc(size_t reqSize) {
-    // Test BTree ops
-    printf("Our remaining is: %d\n", remainingSize);
-    if(reqSize<1|| reqSize>remainingSize) {
+    printf("Our remaining is: %ld\n", remainingSize);
+    if (reqSize < 1|| reqSize > remainingSize) {
         printf("Cannot handle request!\n");
         return NULL;
     }
-    
     begunSearch = false;
     BTreeNode* root = bTree->root;
     ptr = NULL;
     stored = 1;
-    if(rec2MyMal(root,reqSize) == NULL) {
+    if (rec2MyMal(root, reqSize) == NULL) {
         printf("Cannot handle request!\n");
         return NULL;
     }
-    
+    printf("\n*** Current Binary Tree state ****");
+    print2D(bTree->root);
+    printf("\n");
     return ptr;
 }
 
 // For searching
-bool memAddrEquals(BTreeNode* pItem, void* pArg) {
-    if(pItem->memAddr == pArg) {
-        printf("FOUND!!!\n\n");
-    } else {
-        printf("PROBLEM!!!\n\n");
-    }
+static bool memAddrEquals(void* pCurrent, void* pArg) {
+    BTreeNode* pItem = pCurrent;
     return (pItem->memAddr == pArg);
 }
 
-// List stores nodes with node->val = pointer to our allocated memory block
 void my_free(void* ptr) {
+    printf("Searching for the block to be freed with memAddr %p...", ptr);
     List_first(listOfAllocatedBlocks);
-    BTreeNode* pBlock = (BTreeNode*) List_search(listOfAllocatedBlocks, memAddrEquals, ptr); ;
+    BTreeNode* pBlock = (BTreeNode*) List_search(listOfAllocatedBlocks, memAddrEquals, ptr);
+    if (pBlock) {
+        printf("Block was found!\n");
+    } else {
+        printf("ERROR: Block was NOT found!\n");
+    }
     remainingSize = remainingSize + pBlock->size;
     pBlock->state = FREE;
+    
     BTreeNode* sibling;
     BTreeNode* parentNode = pBlock->parent;
     BTreeNode* newerNode = pBlock;
-    if(parentNode->left) {
+    if (parentNode->left && parentNode->left != pBlock) { // if there is left child and I'm not left, then left child is my sibling
         sibling = parentNode->left;
     } else {
         sibling = parentNode->right;
     }
-    while(sibling != NULL && sibling->state == FREE) {
+    while (sibling != NULL && sibling->state == FREE) {
         newerNode = BTree_mergeNodes(newerNode, sibling);
         newerNode->isParent = false;
-        if(newerNode->left) {
-            sibling = newerNode->left;
+        if (newerNode == bTree->root) { // this solves seg fault
+            break;
+        }
+        if (newerNode->parent->left && newerNode->parent->left != newerNode) {
+            sibling = newerNode->parent->left;
         } else {
-            sibling = newerNode->right;
+            sibling = newerNode->parent->right;
         }
     }
-    while(newerNode ->parent != NULL &&
-    newerNode->parent->state == FULL && 
-    (sibling->state != FREE)) {
+    while (newerNode->parent != NULL && newerNode->parent->state == FULL && (sibling->state != FREE)) {
         newerNode->parent->state = PARTIAL;
         newerNode = newerNode->parent;
     }
     List_remove(listOfAllocatedBlocks);
+    printf("Block at %p was freed!\n", ptr);
+    printf("\n*** Current Binary Tree state ****");
+    print2D(bTree->root);
+    printf("\n");
 }
+
 void* my_malloc_cleanup() {
     free(initBlock);
     BTree_cleanup(bTree->root);

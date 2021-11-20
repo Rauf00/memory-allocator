@@ -3,8 +3,9 @@
 #include "bTree.h"
 
 #define COUNT 10
+
 // Helper fuction to create a node
-void* createNode(size_t size, void* memAddr, BTreeNode* left, BTreeNode* right, BTreeNode* parent) {
+static void* createNode(size_t size, void* memAddr, BTreeNode* left, BTreeNode* right, BTreeNode* parent) {
     size_t memSize = sizeof(size_t) + sizeof(void*) + 3 * sizeof(BTreeNode*) + sizeof(NodeState);
     BTreeNode* newNode = malloc(memSize + 5); // TO DO: find out why extra 4 bytes of mem are needed  //when adding is parent with +4 i had valgrind error, i changed to + 5 no error
     newNode->state = FREE;
@@ -18,20 +19,17 @@ void* createNode(size_t size, void* memAddr, BTreeNode* left, BTreeNode* right, 
 }
 
 // Helper fuction to delete a node
-void deleteNode(BTreeNode* node) {
-    //node->state = FREE;
+static void deleteNode(BTreeNode* node) {
     node->parent = NULL;
-    
-    
     free(node);
 }
 
-void printNode(BTreeNode* node) {
+static void printNode(BTreeNode* node) {
     printf("state: %d, size: %ld, memAddr: %p, left: %p, right: %p, parent: %p\n",
             node->state, node->size, node->memAddr, node->left, node->right, node->parent);
 }
 
-void print2DUtil(BTreeNode* root, int space)
+static void print2DUtil(BTreeNode* root, int space)
 {
     if (root == NULL){
         return;
@@ -46,6 +44,8 @@ void print2DUtil(BTreeNode* root, int space)
     print2DUtil(root->left, space);
 }
 
+// Prints a tree for debugging
+// See how to interpet results here https://www.geeksforgeeks.org/print-binary-tree-2-dimensions/
 void print2D(BTreeNode *root)
 {
    print2DUtil(root, 0);
@@ -66,8 +66,6 @@ void BTree_splitNode(BTreeNode* node) {
     BTreeNode* left = createNode(childSize, (node->memAddr) + childSize, NULL, NULL, node);
     node->right = right;
     node->left = left;
-    
-    //node->state = PARTIAL;
 }
 
 BTreeNode* BTree_mergeNodes(BTreeNode* left, BTreeNode* right) {
@@ -75,6 +73,7 @@ BTreeNode* BTree_mergeNodes(BTreeNode* left, BTreeNode* right) {
     parent->state = FREE;
     parent->left = NULL;
     parent->right = NULL;
+    printf("Buddies of size %d and %d are merged! Parent's state: %d, right: %p, left %p\n", (int)left->size, (int)right->size, parent->state, parent->right, parent->left);
     deleteNode(left);
     deleteNode(right);
     return parent;
