@@ -44,11 +44,14 @@ static void print2DUtil(BTreeNode* root, int space)
     print2DUtil(root->left, space);
 }
 
-// Prints a tree for debugging
-// See how to interpet results here https://www.geeksforgeeks.org/print-binary-tree-2-dimensions/
+// The function was copied from https://www.geeksforgeeks.org/print-binary-tree-2-dimensions/ and used for debugging only
+// It is NOT a part of our solution but it prints the binary tree in a neat way (using tabs).
+// We were not sure if we are allowed to use code from external resources, so we've commented it out.
+// If you want to print the state of the binary tree during algorithm execution, feel free to uncomment it.
+// Printing the tree will make testing easier and might help to understand the algorithm better.
 void print2D(BTreeNode *root)
 {
-   print2DUtil(root, 0);
+//    print2DUtil(root, 0);
 }
 
 BTree* BTree_create(size_t size, void* memAddr) {

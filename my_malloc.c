@@ -35,11 +35,9 @@ static void* rec2MyMal(BTreeNode* node, size_t reqSize) {
             BTree_splitNode(node);
         }
         if (node->right->state != FULL) {
-            printf("Going right!\n");
             ptr =rec2MyMal(node->right, reqSize);
         }
         if(node->left->state != FULL) {
-            printf("Going left!\n");
             ptr = rec2MyMal(node->left, reqSize);
         }
     } else {
